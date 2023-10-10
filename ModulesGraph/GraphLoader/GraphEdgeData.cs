@@ -51,6 +51,27 @@ namespace ModulesGraphDesktopApp
   }
 
   /// <summary>
+  /// Информация о зависимости через блок.
+  /// </summary>
+  public class BlockDependencyInfo : DependencyInfo
+  {
+    /// <summary>
+    /// NameGuid блока.
+    /// </summary>
+    public string? BlockNameGuid { get; set; }
+
+    /// <summary>
+    /// NameGuid базового блока.
+    /// </summary>
+    public string? BlockBaseGuid { get; set; }
+
+    public override string ToHtmlFragment()
+    {
+      return $"<li>Зависимость блока ({this.BlockNameGuid}) от базового блока ({this.BlockBaseGuid}).</li>";
+    }
+  }
+
+  /// <summary>
   /// Информация о зависимости по наследованию.
   /// </summary>
   public class InheritanceDependencyInfo : DependencyInfo

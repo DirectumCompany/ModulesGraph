@@ -71,18 +71,38 @@ namespace ModulesGraphDesktopApp
     }
 
     /// <summary>
-    /// Найти метаданные модуля.
+    /// Найти метаданные модуля по NameGuid сущности.
     /// </summary>
     /// <param name="nameGuid">NameGuid типа сущности.</param>
     /// <param name="modules">Список модулей.</param>
     /// <returns>Метаданные найденного модуля.</returns>
-    private static ModuleMetadata? FindModuleMetadata(string nameGuid, List<ModuleMetadata> modules)
+    private static ModuleMetadata? FindModuleMetadataByItem(string nameGuid, List<ModuleMetadata> modules)
     {
       foreach (var module in modules)
       {
         foreach (var item in module.Items ?? new List<ModuleItemMetadata>())
         {
           if (item.Metadata?["NameGuid"]?.ToString() == nameGuid)
+            return module;
+        }
+      }
+      return null;
+    }
+
+    /// <summary>
+    /// Найти метаданные модуля по NameGuid блока.
+    /// </summary>
+    /// <param name="blockNameGuid">NameGuid блока.</param>
+    /// <param name="modules">Список модулей.</param>
+    /// <returns>Метаданные найденного модуля.</returns>
+    private static ModuleMetadata? FindModuleMetadataByBlock(string blockNameGuid, List<ModuleMetadata> modules)
+    {
+      foreach (var module in modules)
+      {
+        var blocks = module?.Metadata?["Blocks"] ?? new JObject();
+        foreach (var block in blocks)
+        {
+          if (block?["NameGuid"]?.ToString() == blockNameGuid)
             return module;
         }
       }
@@ -166,10 +186,35 @@ namespace ModulesGraphDesktopApp
         {
           var nameGuid = item.Metadata?["NameGuid"]?.ToString();
           var baseGuid = item.Metadata?["BaseGuid"]?.ToString() ?? Guid.Empty.ToString();
-          var parentModule = FindModuleMetadata(baseGuid, modules);
+          var parentModule = FindModuleMetadataByItem(baseGuid, modules);
           if (parentModule != null)
           {
             var dependencyInfo = new InheritanceDependencyInfo() { ItemNameGuid = nameGuid, ItemBaseGuid = baseGuid };
+            AddEdgeBetweenModules(graph, module, parentModule, dependencyInfo);
+          }
+        }
+      }
+    }
+
+
+    /// <summary>
+    /// Добавить зависимости через блоки.
+    /// </summary>
+    /// <param name="graph">Граф.</param>
+    /// <param name="modules">Список модулей.</param>
+    private static void AddDependenciesByBlocks(Microsoft.Msagl.Drawing.Graph graph, List<ModuleMetadata> modules)
+    {
+      foreach (var module in modules)
+      {
+        var blocks = module.Metadata?["Blocks"] ?? new JObject();
+        foreach (var block in blocks)
+        {
+          var nameGuid = block?["NameGuid"]?.ToString() ?? Guid.Empty.ToString();
+          var baseGuid = block?["BaseGuid"]?.ToString() ?? Guid.Empty.ToString();
+          var parentModule = FindModuleMetadataByBlock(baseGuid, modules);
+          if (parentModule != null)
+          {
+            var dependencyInfo = new BlockDependencyInfo() { BlockNameGuid = nameGuid, BlockBaseGuid = baseGuid };
             AddEdgeBetweenModules(graph, module, parentModule, dependencyInfo);
           }
         }
@@ -194,7 +239,7 @@ namespace ModulesGraphDesktopApp
             var entityTypeId = action["EntityTypeId"]?.ToString() ?? String.Empty;
             if (!string.IsNullOrEmpty(entityTypeId))
             {
-              var linkedModule = FindModuleMetadata(entityTypeId, modules);
+              var linkedModule = FindModuleMetadataByItem(entityTypeId, modules);
               if (linkedModule != null)
               {
                 var dependencyInfo = new CoverActionDependencyInfo() { ActionName = actionName, ActionEntityTypeId = entityTypeId };
@@ -226,7 +271,7 @@ namespace ModulesGraphDesktopApp
                 property?["IsAncestorMetadata"]?.ToString() != "true")
             {
               var linkedEntityType = property?["EntityGuid"]?.ToString() ?? Guid.Empty.ToString();
-              var linkedModule = FindModuleMetadata(linkedEntityType, modules);
+              var linkedModule = FindModuleMetadataByItem(linkedEntityType, modules);
               if (linkedModule != null)
               {
                 var dependencyInfo =
@@ -254,7 +299,7 @@ namespace ModulesGraphDesktopApp
           var folderName = specialFolder?["Name"]?.ToString() ?? String.Empty.ToString();
           var folderNameGuid = specialFolder?["NameGuid"]?.ToString() ?? Guid.Empty.ToString();
           var defaultContentType = specialFolder?["DefaultContentType"]?.ToString() ?? Guid.Empty.ToString();
-          var linkedModule = FindModuleMetadata(defaultContentType, modules);
+          var linkedModule = FindModuleMetadataByItem(defaultContentType, modules);
           if (linkedModule != null)
           {
             var dependencyInfo =
@@ -283,7 +328,7 @@ namespace ModulesGraphDesktopApp
             var name = item?["Name"]?.ToString() ?? String.Empty;
             var nameGuid = item?["NameGuid"]?.ToString() ?? Guid.Empty.ToString();
             var entityGuid = item?["EntityGuid"]?.ToString() ?? "";
-            var linkedModule = FindModuleMetadata(entityGuid, modules);
+            var linkedModule = FindModuleMetadataByItem(entityGuid, modules);
             if (linkedModule != null)
             {
               var dependencyInfo =
@@ -308,6 +353,7 @@ namespace ModulesGraphDesktopApp
       AddNodes(result, modules);
       AddExplicitDependencies(result, modules);
       AddInheritanceDependencies(result, modules);
+      AddDependenciesByBlocks(result, modules);
       AddDependenciesByCoverActions(result, modules);
       AddDependenciesByNavigationProperties(result, modules);
       AddDependenciesBySpecialFolders(result, modules);
