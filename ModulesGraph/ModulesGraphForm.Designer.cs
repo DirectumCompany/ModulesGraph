@@ -31,28 +31,33 @@
       this.webBrowser = new System.Windows.Forms.WebBrowser();
       this.splitContainer = new System.Windows.Forms.SplitContainer();
       ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
+      this.splitContainer.Panel2.SuspendLayout();
       this.splitContainer.SuspendLayout();
       this.SuspendLayout();
       // 
-      // splitContainer
-      // 
-      this.splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.splitContainer.Location = new System.Drawing.Point(0, 0);
-      this.splitContainer.Name = "splitContainer";
-      this.splitContainer.Size = new System.Drawing.Size(770, 450);
-      this.splitContainer.SplitterDistance = 555;
-      this.splitContainer.TabIndex = 0;
-      // 
       // webBrowser
       // 
-      this.webBrowser.Location = new System.Drawing.Point(1064, 24);
+      this.webBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.webBrowser.Location = new System.Drawing.Point(0, 0);
       this.webBrowser.Margin = new System.Windows.Forms.Padding(5, 3, 5, 3);
       this.webBrowser.MinimumSize = new System.Drawing.Size(27, 27);
       this.webBrowser.Name = "webBrowser";
-      this.webBrowser.Size = new System.Drawing.Size(405, 506);
+      this.webBrowser.Size = new System.Drawing.Size(211, 450);
       this.webBrowser.TabIndex = 27;
-      this.webBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
+      // 
+      // splitContainer
+      // 
+      this.splitContainer.BackColor = System.Drawing.SystemColors.ScrollBar;
+      this.splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.splitContainer.Location = new System.Drawing.Point(0, 0);
+      this.splitContainer.Name = "splitContainer";
+      // 
+      // splitContainer.Panel2
+      // 
       this.splitContainer.Panel2.Controls.Add(this.webBrowser);
+      this.splitContainer.Size = new System.Drawing.Size(770, 450);
+      this.splitContainer.SplitterDistance = 555;
+      this.splitContainer.TabIndex = 0;
       // 
       // ModulesGraphForm
       // 
@@ -63,6 +68,7 @@
       this.Controls.Add(this.splitContainer);
       this.Name = "ModulesGraphForm";
       this.Text = "Граф зависимостей между модулями";
+      this.splitContainer.Panel2.ResumeLayout(false);
       ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).EndInit();
       this.splitContainer.ResumeLayout(false);
       this.ResumeLayout(false);
