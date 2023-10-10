@@ -71,6 +71,28 @@ namespace ModulesGraphDesktopApp
     }
   }
 
+
+  /// <summary>
+  /// Информация о зависимости через перекрытый модуль.
+  /// </summary>
+  public class LayeredModuleDependencyInfo : DependencyInfo
+  { 
+    /// <summary>
+    /// NameGuid модуля.
+    /// </summary>
+    public string? LayeredModuleNameGuid { get; set; }
+
+    /// <summary>
+    /// NameGuid базового модуля.
+    /// </summary>
+    public string? LayeredModuleBaseGuid { get; set; }
+
+    public override string ToHtmlFragment()
+    {
+      return $"<li>Зависимость перекрытого модуля {this.LayeredModuleNameGuid} от базового модуля {this.LayeredModuleBaseGuid}.</li>";
+    }
+  }
+
   /// <summary>
   /// Информация о зависимости по наследованию.
   /// </summary>

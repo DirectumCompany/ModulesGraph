@@ -16,5 +16,10 @@ namespace ModulesGraphDesktopApp
     /// Список элементов модуля.
     /// </summary>
     public List<ModuleItemMetadata>? Items { get; set; }
+
+    /// <summary>
+    /// Список перекрытых модулей.
+    /// </summary>
+    public List<ModuleMetadata>? LayeredModules { get; set; }
   }
 }

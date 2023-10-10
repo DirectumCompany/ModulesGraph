@@ -19,9 +19,35 @@ namespace ModulesGraphDesktopApp
       {
         foreach (var fileName in Directory.EnumerateFiles(directory, "*.mtd"))
         {
-          var jobject = JObject.Parse(File.ReadAllText(fileName));
-          var item = new ModuleItemMetadata() { Metadata = jobject };
-          result.Add(item);
+          if (Path.GetFileName(fileName) != "Module.mtd")
+          {
+            var jobject = JObject.Parse(File.ReadAllText(fileName));
+            var item = new ModuleItemMetadata() { Metadata = jobject };
+            result.Add(item);
+          }
+        }
+      }
+      return result;
+    }
+
+    /// <summary>
+    /// Загрузить перекрытые модули.
+    /// </summary>
+    /// <param name="moduleFolder">Родительская папка.</param>
+    /// <returns>Список перекрытых модулей.</returns>
+    private static List<ModuleMetadata> LoadLayeredModules(string moduleFolder)
+    {
+      var result = new List<ModuleMetadata>();
+      foreach (var directory in Directory.EnumerateDirectories(moduleFolder, "*", new EnumerationOptions { RecurseSubdirectories = true }))
+      {
+        foreach (var fileName in Directory.EnumerateFiles(directory, "*.mtd"))
+        {
+          if (Path.GetFileName(fileName) == "Module.mtd")
+          {
+            var jobject = JObject.Parse(File.ReadAllText(fileName));
+            var module = new ModuleMetadata() { Metadata = jobject };
+            result.Add(module);
+          }
         }
       }
       return result;
@@ -43,7 +69,8 @@ namespace ModulesGraphDesktopApp
           {
             var jobject = JObject.Parse(File.ReadAllText(fileName));
             var items = LoadItems(directory);
-            var module = new ModuleMetadata() { Metadata = jobject, Items = items };
+            var layeredModules = LoadLayeredModules(directory);
+            var module = new ModuleMetadata() { Metadata = jobject, Items = items, LayeredModules = layeredModules };
             result.Add(module);
           }
         }
@@ -103,6 +130,29 @@ namespace ModulesGraphDesktopApp
         foreach (var block in blocks)
         {
           if (block?["NameGuid"]?.ToString() == blockNameGuid)
+            return module;
+        }
+      }
+      return null;
+    }
+
+    /// <summary>
+    /// Найти метаданные модуля по NameGuid перекрытого модуля.
+    /// </summary>
+    /// <param name="moduleNameGuid">NameGuid модуля.</param>
+    /// <param name="modules">Список модулей.</param>
+    /// <returns>Метаданные модуля.</returns>
+    private static ModuleMetadata? FindModuleMetadataByLayeredModule(string moduleNameGuid, List<ModuleMetadata> modules)
+    {
+      foreach (var module in modules)
+      {
+        var currentModuleNameGuid = module?.Metadata?["NameGuid"]?.ToString() ?? Guid.Empty.ToString();
+        if (currentModuleNameGuid == moduleNameGuid)
+          return module;
+
+        foreach (var layeredModule in module?.LayeredModules ?? new List<ModuleMetadata>())
+        {
+          if (layeredModule?.Metadata?["NameGuid"]?.ToString() == moduleNameGuid)
             return module;
         }
       }
@@ -216,6 +266,33 @@ namespace ModulesGraphDesktopApp
           {
             var dependencyInfo = new BlockDependencyInfo() { BlockNameGuid = nameGuid, BlockBaseGuid = baseGuid };
             AddEdgeBetweenModules(graph, module, parentModule, dependencyInfo);
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Добавить зависимости через перекрытые модули.
+    /// </summary>
+    /// <param name="graph">Граф.</param>
+    /// <param name="modules">Список модулей.</param>
+    private static void AddDependenciesByLayeredModules(Microsoft.Msagl.Drawing.Graph graph, List<ModuleMetadata> modules)
+    {
+      foreach (var module in modules)
+      {
+        var layeredModules = module.LayeredModules;
+        if (layeredModules != null)
+        {
+          foreach (var layeredModule in layeredModules)
+          {
+            var nameGuid = layeredModule?.Metadata?["NameGuid"]?.ToString() ?? Guid.Empty.ToString();
+            var baseGuid = layeredModule?.Metadata?["BaseGuid"]?.ToString() ?? Guid.Empty.ToString();
+            var parentModule = FindModuleMetadataByLayeredModule(baseGuid, modules);
+            if (parentModule != null)
+            {
+              var dependencyInfo = new LayeredModuleDependencyInfo() { LayeredModuleNameGuid = nameGuid, LayeredModuleBaseGuid = baseGuid };
+              AddEdgeBetweenModules(graph, module, parentModule, dependencyInfo);
+            }
           }
         }
       }
@@ -354,6 +431,7 @@ namespace ModulesGraphDesktopApp
       AddExplicitDependencies(result, modules);
       AddInheritanceDependencies(result, modules);
       AddDependenciesByBlocks(result, modules);
+      AddDependenciesByLayeredModules(result, modules);
       AddDependenciesByCoverActions(result, modules);
       AddDependenciesByNavigationProperties(result, modules);
       AddDependenciesBySpecialFolders(result, modules);
